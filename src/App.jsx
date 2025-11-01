@@ -1,246 +1,175 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { useTheme } from './context/ThemeContext';
 import SearchBar from './components/SearchBar';
-import CurrentWeather from './components/CurrentWeather';
-import WeatherDetails from './components/WeatherDetails';
-import TodayForecast from './components/TodayForecast';
-import WeeklyForecast from './components/WeeklyForecast';
-import ThemeToggle from './components/ThemeToggle';
 import LoadingSpinner from './components/LoadingSpinner';
-import { CloudOff } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
+
+// Lazy load components for better performance
+const CurrentWeather = lazy(() => import('./components/CurrentWeather'));
+const WeatherDetails = lazy(() => import('./components/WeatherDetails'));
+const HourlyForecast = lazy(() => import('./components/HourlyForecast'));
+const WeeklyForecast = lazy(() => import('./components/WeeklyForecast'));
+const ThemeToggle = lazy(() => import('./components/ThemeToggle'));
 
 function App() {
   const { theme } = useTheme();
   const [weather, setWeather] = useState(null);
   const [forecast, setForecast] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [viewMode, setViewMode] = useState('hourly'); // 'hourly' or 'weekly'
+  const [viewMode, setViewMode] = useState('today');
 
   const API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
   const BASE_URL = import.meta.env.VITE_WEATHER_API_BASE;
 
-  // Fetch weather by city name
   const fetchWeatherByCity = async (city) => {
     setIsLoading(true);
     setError(null);
-
     try {
-      const weatherResponse = await axios.get(
-        `${BASE_URL}/weather?q=${city}&units=metric&appid=${API_KEY}`
-      );
-      
-      const forecastResponse = await axios.get(
-        `${BASE_URL}/forecast?q=${city}&units=metric&appid=${API_KEY}`
-      );
-
-      setWeather(weatherResponse.data);
-      setForecast(forecastResponse.data);
+      const [weatherRes, forecastRes] = await Promise.all([
+        axios.get(`${BASE_URL}/weather?q=${city}&units=metric&appid=${API_KEY}`),
+        axios.get(`${BASE_URL}/forecast?q=${city}&units=metric&appid=${API_KEY}`)
+      ]);
+      setWeather(weatherRes.data);
+      setForecast(forecastRes.data);
     } catch (err) {
-      setError(err.response?.data?.message || 'City not found. Please try again.');
+      setError(err.response?.data?.message || 'City not found');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Fetch weather by coordinates
   const fetchWeatherByCoords = async (lat, lon) => {
     setIsLoading(true);
     setError(null);
-
     try {
-      const weatherResponse = await axios.get(
-        `${BASE_URL}/weather?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`
-      );
-      
-      const forecastResponse = await axios.get(
-        `${BASE_URL}/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`
-      );
-
-      setWeather(weatherResponse.data);
-      setForecast(forecastResponse.data);
+      const [weatherRes, forecastRes] = await Promise.all([
+        axios.get(`${BASE_URL}/weather?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`),
+        axios.get(`${BASE_URL}/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`)
+      ]);
+      setWeather(weatherRes.data);
+      setForecast(forecastRes.data);
     } catch (err) {
-      setError('Failed to fetch weather data. Please try again.');
+      setError('Failed to fetch weather data');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Get user's location
   const getUserLocation = () => {
     if (navigator.geolocation) {
       setIsLoading(true);
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          fetchWeatherByCoords(position.coords.latitude, position.coords.longitude);
-        },
-        (error) => {
-          setError('Unable to retrieve your location. Please search manually.');
+        (position) => fetchWeatherByCoords(position.coords.latitude, position.coords.longitude),
+        () => {
+          setError('Location access denied');
           setIsLoading(false);
         }
       );
-    } else {
-      setError('Geolocation is not supported by your browser.');
     }
   };
 
-  // Load default city on mount
   useEffect(() => {
     fetchWeatherByCity('Lahore');
   }, []);
 
-  // Theme-based background
-  const getBackgroundClass = () => {
-    if (theme === 'glassmorphism') {
-      return 'bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400';
-    }
-    return 'bg-gradient-to-br from-gray-800 via-gray-700 to-gray-900';
+  const themeConfig = {
+    midnight: 'from-slate-900 via-purple-900 to-slate-900',
+    ocean: 'from-blue-900 via-blue-600 to-cyan-400',
+    sunset: 'from-orange-600 via-rose-500 to-purple-700',
+    forest: 'from-emerald-900 via-teal-700 to-cyan-600'
   };
 
-  const cardClass = theme === 'glassmorphism' 
-    ? 'glass-card' 
-    : 'neuro-card-dark';
-
   return (
-    <div className={`min-h-screen ${getBackgroundClass()} transition-all duration-500 relative overflow-hidden`}>
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          className="absolute w-96 h-96 bg-blue-500/20 rounded-full blur-3xl"
-          animate={{
-            x: [0, 100, 0],
-            y: [0, -100, 0],
-          }}
-          transition={{ duration: 20, repeat: Infinity }}
-          style={{ top: '10%', left: '10%' }}
+    <div className={`min-h-screen bg-gradient-to-br ${themeConfig[theme]} transition-colors duration-700`}>
+      <div className="container mx-auto px-4 py-4 sm:py-6 max-w-7xl">
+        
+        {/* Header */}
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-black text-white">
+              Weather<span className="text-white/60">Hub</span>
+            </h1>
+            <p className="text-white/60 text-xs sm:text-sm mt-1">Real-time updates</p>
+          </div>
+          <Suspense fallback={<div className="w-12 h-12" />}>
+            <ThemeToggle />
+          </Suspense>
+        </header>
+
+        {/* Search */}
+        <SearchBar 
+          onSearch={fetchWeatherByCity}
+          onGetLocation={getUserLocation}
+          isLoading={isLoading}
         />
-        <motion.div
-          className="absolute w-96 h-96 bg-pink-500/20 rounded-full blur-3xl"
-          animate={{
-            x: [0, -100, 0],
-            y: [0, 100, 0],
-          }}
-          transition={{ duration: 15, repeat: Infinity }}
-          style={{ bottom: '10%', right: '10%' }}
-        />
-        <motion.div
-          className="absolute w-64 h-64 bg-purple-500/20 rounded-full blur-3xl"
-          animate={{
-            x: [0, 50, 0],
-            y: [0, 50, 0],
-          }}
-          transition={{ duration: 10, repeat: Infinity }}
-          style={{ top: '50%', left: '50%' }}
-        />
-      </div>
 
-      {/* Theme Toggle */}
-      <ThemeToggle />
-
-      {/* Main Content */}
-      <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
-        {/* Search Bar */}
-        <div className="mb-8">
-          <SearchBar 
-            onSearch={fetchWeatherByCity}
-            onGetLocation={getUserLocation}
-            isLoading={isLoading}
-          />
-        </div>
-
-        {/* View Mode Toggle */}
-        {weather && forecast && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex justify-end gap-3 mb-6"
-          >
-            <motion.button
-              onClick={() => setViewMode('hourly')}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className={`px-6 py-2 rounded-xl font-medium transition-all duration-300
-                ${viewMode === 'hourly'
-                  ? 'bg-blue-500 text-white shadow-glow'
-                  : `${cardClass} text-gray-300`
-                }`}
-            >
-              Hourly
-            </motion.button>
-            <motion.button
-              onClick={() => setViewMode('weekly')}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className={`px-6 py-2 rounded-xl font-medium transition-all duration-300
-                ${viewMode === 'weekly'
-                  ? 'bg-blue-500 text-white shadow-glow'
-                  : `${cardClass} text-gray-300`
-                }`}
-            >
-              Weekly
-            </motion.button>
-          </motion.div>
-        )}
-
-        {/* Loading State */}
-        {isLoading && <LoadingSpinner />}
-
-        {/* Error State */}
+        {/* Error */}
         <AnimatePresence>
-          {error && (
+          {error && !isLoading && (
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className={`${cardClass} rounded-2xl p-6 mb-6 flex items-center gap-4`}
+              exit={{ opacity: 0 }}
+              className="mt-4 bg-red-500/20 backdrop-blur-md border border-red-500/30 rounded-xl p-4 flex items-center gap-3"
             >
-              <CloudOff className="text-red-400" size={24} />
-              <div>
-                <p className="text-red-400 font-medium">{error}</p>
-              </div>
+              <AlertCircle className="text-red-300 flex-shrink-0" size={20} />
+              <p className="text-red-200 text-sm">{error}</p>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Weather Content */}
+        {/* Loading */}
+        {isLoading && <LoadingSpinner />}
+
+        {/* Content */}
         <AnimatePresence mode="wait">
           {!isLoading && weather && forecast && (
-            <motion.div
-              key="weather-content"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-6"
-            >
-              {/* Current Weather */}
-              <CurrentWeather weather={weather} />
+            <Suspense fallback={<LoadingSpinner />}>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="mt-6 space-y-4 sm:space-y-6"
+              >
+                <CurrentWeather weather={weather} />
+                <WeatherDetails weather={weather} />
 
-              {/* Weather Details Grid */}
-              <WeatherDetails weather={weather} />
+                {/* Toggle */}
+                <div className="flex justify-center gap-2 sm:gap-3">
+                  {['today', 'week'].map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => setViewMode(mode)}
+                      className={`px-6 sm:px-8 py-2.5 sm:py-3 rounded-full font-bold text-sm sm:text-base transition-all ${
+                        viewMode === mode
+                          ? 'bg-white text-gray-900'
+                          : 'bg-white/10 text-white border border-white/20'
+                      }`}
+                    >
+                      {mode === 'today' ? 'Today' : '7 Days'}
+                    </button>
+                  ))}
+                </div>
 
-              {/* Forecast Section */}
-              {viewMode === 'hourly' ? (
-                <TodayForecast forecast={forecast} />
-              ) : (
-                <WeeklyForecast forecast={forecast} />
-              )}
-            </motion.div>
+                {viewMode === 'today' ? (
+                  <HourlyForecast forecast={forecast} />
+                ) : (
+                  <WeeklyForecast forecast={forecast} />
+                )}
+              </motion.div>
+            </Suspense>
           )}
         </AnimatePresence>
 
         {/* Footer */}
-        <motion.footer
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="mt-12 text-center"
-        >
-          <p className="text-white/60 text-sm">
-            Weather data provided by OpenWeatherMap API
-          </p>
-        </motion.footer>
+        {weather && (
+          <footer className="mt-8 sm:mt-12 pb-4 text-center text-white/40 text-xs sm:text-sm">
+            Powered by OpenWeatherMap
+          </footer>
+        )}
       </div>
     </div>
   );

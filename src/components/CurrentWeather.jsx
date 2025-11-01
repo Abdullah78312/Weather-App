@@ -1,92 +1,46 @@
-import { motion } from 'framer-motion';
-import { useTheme } from '../context/ThemeContext';
 import { getWeatherIcon } from '../utils/weatherIcons';
-import { Calendar, Clock } from 'lucide-react';
+import { MapPin, Calendar, Clock } from 'lucide-react';
 
 const CurrentWeather = ({ weather }) => {
-  const { theme } = useTheme();
-
-  const cardClass = theme === 'glassmorphism' 
-    ? 'glass-card' 
-    : 'neuro-card-dark';
-
-  const formatDate = (timestamp) => {
-    const date = new Date(timestamp * 1000);
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-  };
-
-  const formatTime = (timestamp) => {
-    const date = new Date(timestamp * 1000);
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
-  };
-
-  const isNight = () => {
-    const hour = new Date().getHours();
-    return hour >= 18 || hour < 6;
-  };
+  const isNight = () => new Date().getHours() >= 18 || new Date().getHours() < 6;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5, delay: 0.1 }}
-      className={`${cardClass} rounded-3xl p-8 transition-all duration-300`}
-    >
-      {/* Location & Date */}
-      <div className="mb-6">
-        <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
+    <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8">
+      <div className="flex items-center gap-2 mb-4 sm:mb-6">
+        <MapPin className="text-white flex-shrink-0" size={20} />
+        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white truncate">
           {weather.name}, {weather.sys.country}
-        </h1>
-        
-        <div className="flex flex-wrap items-center gap-4 text-gray-300">
-          <div className="flex items-center gap-2">
-            <Calendar size={18} />
-            <span>{formatDate(weather.dt)}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Clock size={18} />
-            <span>{formatTime(weather.dt)}</span>
-          </div>
-        </div>
+        </h2>
       </div>
 
-      {/* Main Weather Display */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-        {/* Temperature & Icon */}
-        <div className="flex items-center gap-6">
-          <motion.div
-            initial={{ rotate: 0 }}
-            animate={{ rotate: [0, 10, -10, 0] }}
-            transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-          >
-            {getWeatherIcon(weather.weather[0].main, isNight(), 120)}
-          </motion.div>
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="flex items-center gap-4 sm:gap-6">
+          <div className="flex-shrink-0">
+            {getWeatherIcon(weather.weather[0].main, isNight(), 80)}
+          </div>
           
           <div>
-            <motion.div 
-              className="text-7xl md:text-8xl font-bold text-white"
-              initial={{ scale: 0.5 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 100 }}
-            >
-              {Math.round(weather.main.temp)}°C
-            </motion.div>
-            <div className="text-2xl text-gray-300 capitalize mt-2">
-              {weather.weather[0].description}
+            <div className="text-6xl sm:text-7xl lg:text-8xl font-black text-white">
+              {Math.round(weather.main.temp)}°
             </div>
+            <p className="text-lg sm:text-xl text-white/80 capitalize mt-2">
+              {weather.weather[0].description}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 text-white/70 text-sm sm:text-base w-full sm:w-auto">
+          <div className="flex items-center gap-2">
+            <Calendar size={16} />
+            <span>{new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Clock size={16} />
+            <span>{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

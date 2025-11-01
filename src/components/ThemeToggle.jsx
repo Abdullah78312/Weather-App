@@ -1,29 +1,35 @@
-import { motion } from 'framer-motion';
-import { Palette } from 'lucide-react';
+import { Sparkles, Waves, Sun, Trees } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 const ThemeToggle = () => {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
+
+  const themes = [
+    { id: 'midnight', icon: Sparkles, color: 'from-purple-500 to-indigo-600' },
+    { id: 'ocean', icon: Waves, color: 'from-blue-500 to-cyan-500' },
+    { id: 'sunset', icon: Sun, color: 'from-orange-500 to-pink-500' },
+    { id: 'forest', icon: Trees, color: 'from-emerald-500 to-teal-500' }
+  ];
 
   return (
-    <motion.button
-      onClick={toggleTheme}
-      className={`fixed top-6 left-6 z-50 p-4 rounded-2xl flex items-center gap-2 font-medium
-        ${theme === 'glassmorphism' 
-          ? 'glass-card text-white hover:bg-white/20' 
-          : 'neuro-card-dark text-white hover:shadow-neumorphic-light'
-        } transition-all duration-300`}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <Palette size={20} />
-      <span className="hidden sm:inline">
-        {theme === 'glassmorphism' ? 'Glassmorphism' : 'Neumorphism'}
-      </span>
-    </motion.button>
+    <div className="flex gap-2">
+      {themes.map((t) => {
+        const Icon = t.icon;
+        return (
+          <button
+            key={t.id}
+            onClick={() => setTheme(t.id)}
+            className={`w-10 h-10 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl flex items-center justify-center transition-all ${
+              theme === t.id
+                ? `bg-gradient-to-br ${t.color}`
+                : 'bg-white/10 border border-white/20'
+            }`}
+          >
+            <Icon size={18} className="text-white" />
+          </button>
+        );
+      })}
+    </div>
   );
 };
 

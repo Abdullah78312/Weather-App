@@ -2,9 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>weather-app</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    
+    <title>WeatherHub - Real-Time Weather Forecasts</title>
+    <meta name="description" content="Get accurate weather forecasts with real-time updates. Check hourly & 7-day predictions for any city worldwide." />
+    <meta name="theme-color" content="#0f172a" />
+    
+    <!-- Preconnect -->
+    <link rel="preconnect" href="https://api.openweathermap.org" crossorigin />
+    
+    <!-- Prevent flash -->
+    <style>
+      html,body,#root{background:#0f172a;min-height:100vh;margin:0;padding:0}
+      #root{display:flex;flex-direction:column}
+    </style>
   </head>
   <body>
     <div id="root"></div>
